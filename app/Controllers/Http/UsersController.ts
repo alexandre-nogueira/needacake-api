@@ -4,6 +4,7 @@ import User from 'App/Models/User';
 import { UserService } from 'App/Services/UserService';
 import { rules } from '@ioc:Adonis/Core/Validator';
 import { RequestValidationService } from 'App/Util/RequestValidation';
+import Contact from 'App/Models/Contact';
 
 export default class UsersController {
   //Register new user
@@ -41,7 +42,7 @@ export default class UsersController {
       []
     );
 
-    const registeredUserData = await userService.register(user, auth);
+    const registeredUserData = await userService.register(user);
     if (registeredUserData) {
       await userService.sendConfirmationEmail(
         registeredUserData.email,
@@ -88,7 +89,6 @@ export default class UsersController {
       email: userData.user.email,
       firstName: userData.user.firstName,
       lastName: userData.user.lastName,
-      familyId: userData.user.familyId,
       status: userData.user.status,
     };
   }
@@ -121,7 +121,12 @@ export default class UsersController {
 
   //Get user data
   public async getMyData({ auth }: HttpContextContract) {
-    return await auth.authenticate();
+    //return await auth.authenticate();
+    const user = User.query()
+      .where('id', (await auth.authenticate()).id)
+      .preload('contacts');
+
+    return user;
   }
 
   //Update user password
@@ -267,5 +272,31 @@ export default class UsersController {
     await userService.inactivateUser(user);
     response.status(200);
     return { message: `User ${user.email} is now inactive` };
+  }
+
+  public async createContact({ auth, request }: HttpContextContract) {
+    const user = await auth.authenticate();
+    const userService = new UserService();
+    const contact = new Contact();
+
+    contact.data = await RequestValidationService.validateString(
+      request,
+      'data',
+      []
+    );
+
+    contact.contactTypeId = await RequestValidationService.validateNumber(
+      request,
+      'contactTypeId',
+      [rules.exists({ table: 'contact_types', column: 'id' })]
+    );
+    return await userService.saveContact(user, contact);
+  }
+
+  public async deleteContact({ auth, params }: HttpContextContract) {
+    const user = await auth.authenticate();
+    const userService = new UserService();
+
+    return await userService.deleteContact(user, params.id);
   }
 }

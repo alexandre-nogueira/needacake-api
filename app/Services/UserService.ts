@@ -8,6 +8,7 @@ import ResetPasswordToken from 'App/Models/ResetPasswordToken';
 import { DateTime } from 'luxon';
 import { TokenStatus } from 'App/Types/TokenStatus';
 import { NotificationService } from './NotificationService';
+import Contact from 'App/Models/Contact';
 
 export class UserService {
   //Create and register a new user.
@@ -21,6 +22,16 @@ export class UserService {
     user.status = UserStatus.PENDING;
 
     return await this.save(user);
+  }
+
+  public async saveContact(user: User, contact: Contact) {
+    return await user.related('contacts').save(contact, true);
+  }
+
+  public async deleteContact(user: User, contactId: number) {
+    await user.related('contacts').detach([contactId]);
+    const contact = await Contact.findOrFail(contactId);
+    await contact.delete();
   }
 
   //LOGIN method
@@ -107,6 +118,9 @@ export class UserService {
       changed = true;
       user.lastName = lastName;
     }
+
+    //check changed contacts
+    user.related('contacts').query();
 
     if (changed) {
       return await this.save(user);

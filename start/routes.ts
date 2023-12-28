@@ -20,10 +20,6 @@
 
 import Route from '@ioc:Adonis/Core/Route';
 
-Route.get('/', async () => {
-  return { hello: 'world' };
-});
-
 //User - no token
 Route.group(() => {
   Route.post('register', 'UsersController.register');
@@ -46,6 +42,26 @@ Route.group(() => {
   Route.post('updatePassword', 'UsersController.updatePassword');
   Route.delete('', 'UsersController.delete');
   Route.patch('', 'UsersController.edit');
+  Route.post('contact', 'UsersController.createContact');
+  Route.delete('contact/:id', 'UsersController.deleteContact');
 })
   .prefix('user')
+  .middleware('auth:api');
+
+//Contact Type
+Route.group(() => {
+  Route.get('', 'ContactTypesController.getList');
+  Route.get(':id', 'ContactTypesController.getSingle');
+  Route.post('', 'ContactTypesController.create');
+  Route.patch(':id', 'ContactTypesController.edit');
+  Route.delete(':id', 'ContactTypesController.delete');
+})
+  .prefix('contactType')
+  .middleware('auth:api');
+
+//Contact
+Route.group(() => {
+  Route.patch(':id', 'ContactsController.edit');
+})
+  .prefix('contact')
   .middleware('auth:api');
